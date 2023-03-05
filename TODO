@@ -1,0 +1,6 @@
+NFT一覧(フルオンチェーン)取得する
+testネットにデプロイする
+ガス最適化のtipsを試して出来るだけ安くする
+ReentrancyGuard、noReentrantしらべる
+価格等を決める-PRICE polygonの書き方調査
+

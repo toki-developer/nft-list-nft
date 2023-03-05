@@ -1,13 +1,26 @@
-# Sample Hardhat Project
+npx hardhat run --network goerli scripts/deploy.ts
 
-This project demonstrates a basic Hardhat use case. It comes with a sample contract, a test for that contract, and a script that deploys that contract.
+### コンソールで動作確認
 
-Try running some of the following tasks:
+```
+// コンソールの起動
+npx hardhat console --network localhost
+```
 
-```shell
-npx hardhat help
-npx hardhat test
-REPORT_GAS=true npx hardhat test
-npx hardhat node
-npx hardhat run scripts/deploy.ts
+```
+// デプロイ済みのコントラクトに接続
+const Contract = await ethers.getContractFactory("MyNFTsNFT");
+var contract = await Contract.attach([コントラクトのアドレス])
+
+// contract.関数で、コントラクトの関数を実行できる
+```
+
+### Etherscan verify
+
+```
+npx hardhat clean
+npx hardhat verify --network [ネットワーク名] [コントラクトのアドレス]
+npx hardhat verify --network goerli [コントラクトのアドレス]
+npx hardhat verify --network mainnet [コントラクトのアドレス]
+
 ```
