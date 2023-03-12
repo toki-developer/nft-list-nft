@@ -1,0 +1,220 @@
+<html>
+  <head>
+    <style>
+      body{
+        width: 400px;
+        height:400px;
+        margin: 0;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        padding: 40px 32px 120px;
+        box-sizing: border-box;
+        color: #dcd6d9;
+      }
+
+      .item-overview{
+        position: relative;
+        margin: 0;
+      }
+
+      .item-breakdown{
+        left: 0;
+        bottom: 0;
+        transform: translateY(100%);
+        font-size: 0.7rem;
+        position: absolute;
+      }
+
+      .bg{
+        position: absolute;
+        top:0;
+        left:0;
+        width: 400px;
+        height: 400px;
+        background-color: #4169e1;
+      }
+
+      .scroll-image {
+        position: absolute;
+        bottom:0;
+        width: 400px;
+        display: flex;
+        overflow: hidden;
+      }
+
+      .scroll-image > div {
+        display: flex;
+      }
+
+      @keyframes slide1 {
+          0% {
+              transform: translateX(100%);
+          }
+          to {
+              transform: translateX(-100%);
+          }
+      }
+
+      @keyframes slide2 {
+          0% {
+              transform: translateX(0);
+          }
+          to {
+              transform: translateX(-200%);
+          }
+      }
+
+      .scroll-image > div > img {
+        width: 60;
+        height: 60;
+      }
+
+      .val{
+        color: #fcf6f9;
+        font-weight: bold;
+        font-size: 110%;
+        padding-left: 4px
+      }
+
+    </style>
+
+  </head>
+
+  <body>
+    <div class="bg">
+      <div class="scroll-image">
+        <div id="bgImage1"></div>
+        <div id="bgImage2"></div>
+      </div>
+    </div>
+    <p class="item-overview">
+      NFTs Value: <span id="floorPriceTotal" class="val">0</span> ETH
+      <span class="item-breakdown">Total Opensea Floor Price</span>
+    </p>
+    <p class="item-overview">
+      Received ETH: <span id="receivedEth" class="val">0</span> ETH
+      <span class="item-breakdown">
+        <span>Normal: <span id="receivedValue" class="val">0</span></span> ETH
+        <span>+</span>
+        <span>Internal: <span id="receivedValueInternal" class="val">0</span></span> ETH
+      </span>
+    </p>
+    <p class="item-overview">
+      Used ETH: <span id="usedEth" class="val">0</span> ETH
+      <span class="item-breakdown">
+        <span>Value: <span id="sentEth" class="val">0</span></span> ETH
+        <span> + </span>
+        <span>Gas: <span id="gasTotal" class="val">0</span></span> ETH
+      </span>
+    </p>
+    <p class="item-overview">
+      ETH Balance: <span id="ethBalance" class="val">0</span> ETH
+      <span class="item-breakdown">Received ETH - Used ETH</span>
+    </p>
+  </body>
+
+  <script>
+    const fetchNFTs = async (address) => {
+      const endpoint = `https://eth-mainnet.g.alchemy.com/nft/v2/0Twh_EqKMnOiFfUG1tDmGvU8zocwjGWe/getNFTs`
+      const res = await fetch(`${endpoint}?owner=${address}`)
+      let floorPriceTotal = 0
+      let ownedNfts = []
+      if(res.ok){
+        const json = await res.json()
+        ownedNfts = json.ownedNfts
+        json.ownedNfts.map((nft) => {
+        if(nft?.contractMetadata?.openSea?.floorPrice){
+          floorPriceTotal += nft.contractMetadata.openSea.floorPrice * (nft.balance ?? 1)
+        }
+      })
+      }
+      return {ownedNfts, floorPriceTotal}
+    }
+
+    const fetchEtherscanTransaction = async (address) => {
+      const endpointBase = `https://api.etherscan.io/api?module=account&address=${address}&startblock=0&endblock=99999999&sort=asc&apikey=D34RXTFVXZ2MCTJP5YBF79UQWVQV6XMZM4`
+      const endpointNormal = `${endpointBase}&action=txlist`
+      const endpointInternal = `${endpointBase}&action=txlistinternal`
+      const txListNormalPromise = fetch(endpointNormal)
+      const txListInternalPromise = fetch(endpointInternal)
+      const [txListNormalRes, txListInternalRes] = await Promise.all([txListNormalPromise, txListInternalPromise])
+
+      const weiToEthNum = 1000000000000000000
+
+      let gasTotal = 0
+      let sentValueTotal = 0
+      let receivedValueTotal = 0
+      let receivedValueInternalTotal = 0
+
+      if(txListNormalRes.ok && txListInternalRes.ok){
+        const [txListNormal, txListInternal] = await Promise.all([txListNormalRes.json(), txListInternalRes.json()]);
+        const lowerCaseAddress = address.toLowerCase()
+        txListNormal?.result?.map((tx) => {
+          if(tx.from.toLowerCase() == lowerCaseAddress){
+            gasTotal += (tx.gasUsed * tx.gasPrice) / weiToEthNum;
+            if(tx.txreceipt_status == "1"){
+              sentValueTotal += tx.value / weiToEthNum;
+            }
+          }
+          if(tx.to.toLowerCase() == lowerCaseAddress){
+            receivedValueTotal += tx.value / weiToEthNum
+          }
+        })
+        txListInternal?.result?.map((tx) => {
+          if(tx.to.toLowerCase() == lowerCaseAddress){
+            receivedValueInternalTotal += tx.value / weiToEthNum
+          }
+        })
+      }
+      return {gasTotal, sentValueTotal, receivedValueTotal, receivedValueInternalTotal}
+    }
+
+    const formatETH = (eth) => Math.round(eth * 10000) / 10000
+
+    const createElement = async () => {
+      const params = new URLSearchParams(location.search)
+      const address = params.get("address")
+
+      fetchNFTs(address).then((nftData) => {
+        const floorPriceSumEle = document.getElementById("floorPriceTotal")
+        floorPriceSumEle.textContent = formatETH(nftData.floorPriceTotal)
+        const bgEle1 = document.getElementById("bgImage1")
+        const bgEle2 = document.getElementById("bgImage2")
+        const scrollTime = (nftData?.ownedNfts?.length ?? 1) * 5
+        bgEle1.style.animation = `slide1 ${scrollTime}s -${scrollTime / 2}s linear infinite`
+        bgEle2.style.animation = `slide2 ${scrollTime}s linear infinite`
+        nftData.ownedNfts.map((nft) => {
+          const img1 = document.createElement("img")
+          const img2 = document.createElement("img")
+          const imageUrl = nft?.metadata?.image
+          if(!imageUrl) return
+          img1.src = imageUrl?.replace("ar:/", "https://arweave.net").replace("ipfs:/", "https://ipfs.io/ipfs")
+          img2.src = imageUrl?.replace("ar:/", "https://arweave.net").replace("ipfs:/", "https://ipfs.io/ipfs")
+          img1.onerror= () => img1.remove()
+          img2.onerror= () => img2.remove()
+          bgEle1.appendChild(img1)
+          bgEle2.appendChild(img2)
+      })
+      })
+
+      fetchEtherscanTransaction(address).then((txData) => {
+        const usedEthEle = document.getElementById("usedEth")
+        usedEthEle.textContent = formatETH(txData.sentValueTotal + txData.gasTotal)
+        const sendEthEle = document.getElementById("sentEth")
+        sendEthEle.textContent = formatETH(txData.sentValueTotal)
+        const gasTotalEle = document.getElementById("gasTotal")
+        gasTotalEle.textContent = formatETH(txData.gasTotal)
+        const receivedEthEle = document.getElementById("receivedEth")
+        receivedEthEle.textContent = formatETH(txData.receivedValueTotal + txData.receivedValueInternalTotal)
+        const receivedValueEle = document.getElementById("receivedValue")
+        receivedValueEle.textContent = formatETH(txData.receivedValueTotal)
+        const receivedValueInternalEle = document.getElementById("receivedValueInternal")
+        receivedValueInternalEle.textContent = formatETH(txData.receivedValueInternalTotal)
+        const ethBalanceEle = document.getElementById("ethBalance")
+        ethBalanceEle.textContent = formatETH((txData.receivedValueTotal + txData.receivedValueInternalTotal) - (txData.sentValueTotal + txData.gasTotal))
+      })
+    }
+    createElement()
+  </script>
+</html>
