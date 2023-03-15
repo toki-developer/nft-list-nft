@@ -4,7 +4,6 @@ pragma solidity ^0.8.9;
 import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/utils/Base64.sol";
-import "hardhat/console.sol";
 
 
 contract MyWalletStatsNFT is ERC721, Ownable {
@@ -20,7 +19,7 @@ contract MyWalletStatsNFT is ERC721, Ownable {
             abi.encodePacked(
                 'data:application/json;base64,',
                 Base64.encode(bytes(abi.encodePacked(
-                    '{"name":"My Wallet Stats NFT #',  Strings.toString(tokenId),'","description": "You can see your Wallet Stats","image": "https://arweave.net/PqpMKrJeoRsSYKRfZqf4LJIGuNPGKuaw0BnujQUhqv0", "animation_url": "https://arweave.net/qU74eQtswIItLQtK0xJkFSl5RVusKqBrMx2QGGIAzZw?address=',Strings.toHexString(uint256(uint160(nftOwner))),'"}')))
+                    '{"name":"My Wallet Stats NFT #',  Strings.toString(tokenId),'","description": "You can see your Wallet Stats","image": "https://arweave.net/PqpMKrJeoRsSYKRfZqf4LJIGuNPGKuaw0BnujQUhqv0", "animation_url": "https://arweave.net/omiMlRkoNuCWavSSY4XIk35eWKv6IczKPBFgPIm_R8E?address=',Strings.toHexString(uint256(uint160(nftOwner))),'"}')))
             )
         );
     }

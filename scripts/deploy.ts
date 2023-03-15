@@ -1,7 +1,7 @@
 import { ethers } from "hardhat";
 
 async function main() {
-  const Token = await ethers.getContractFactory("MyNFTsNFT").catch((e) => {
+  const Token = await ethers.getContractFactory("MyWalletStatsNFT").catch((e) => {
     console.log("getContractFactory error");
     console.error(e);
     return undefined;
